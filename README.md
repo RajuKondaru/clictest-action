@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: clictest
-        uses: smartintelectual/clictest-action@v1
+        uses: RajuKondaru/clictest-action@v1
         with:
           env-name: preprodone
           project-name: Sugarcrm
@@ -58,7 +58,7 @@ then **Copy** the `test-suites` JSON / workflow step, or **Run now** to start th
 Setup:
 
 1. Repository settings > Pages > Deploy from branch `master`, folder `/docs`. The page is served at
-   `https://smartintelectual.github.io/clictest-action/`. Gitea has no Pages: host `docs/index.html` on any static web server.
+   `https://rajukondaru.github.io/clictest-action/`. Gitea has no Pages: host `docs/index.html` on any static web server.
 2. In each repository that runs tests, add `examples/clictest-run.yml` as `.github/workflows/clictest-run.yml`
    plus the `CLICTEST_USER` / `CLICTEST_PASSWORD` secrets.
 3. Run now needs an access token with Actions write permission on that repository
@@ -69,7 +69,7 @@ ClicTest server requirements for the page:
 
 - **HTTPS.** The page is served over HTTPS, so browsers block calls to an `http://` service URL (mixed content).
 - **CORS.** The service must answer with `Access-Control-Allow-Origin` for the page's origin
-  (e.g. `https://smartintelectual.github.io`).
+  (e.g. `https://rajukondaru.github.io`).
 
 Lookup calls used: `/envdetails`, `/projectdetails`, `/testsuitedetails`, `/configurationdetails`,
 `/testsuiteversion`, `/browserversion` (same as the Jenkins plugin's dropdowns).
