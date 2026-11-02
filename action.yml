@@ -1,0 +1,90 @@
+name: ClicTest Execution
+description: Trigger ClicTest test suites on the ClicTest server, wait for results and publish report links.
+author: smartintelectual
+
+inputs:
+  env-name:
+    description: ClicTest environment name (e.g. preprodone).
+    required: true
+  project-name:
+    description: ClicTest project name.
+    required: true
+  username:
+    description: ClicTest user name. Pass via secrets.
+    required: true
+  password:
+    description: ClicTest password. Pass via secrets.
+    required: true
+  test-suites:
+    description: >
+      JSON array of test suites. Each item: testSuiteName, testSuiteVersion, url, platform, browsers (array).
+      One execution runs per suite x browser.
+    required: true
+  service-url:
+    description: ClicTest Jenkins service REST base URL.
+    required: false
+    default: http://preprod.clictest.com:8080/ClicTestJenkinsService/rest/jenkinsServices
+  job-name:
+    description: Job name reported to ClicTest. Defaults to the repository (owner/name).
+    required: false
+    default: ''
+  client-ip:
+    description: Client IP of a local ClicTest agent (only for local-browser runs on a self-hosted runner).
+    required: false
+    default: ''
+  max-parallel:
+    description: Maximum executions running at once.
+    required: false
+    default: '10'
+  poll-interval-seconds:
+    description: Seconds between status polls.
+    required: false
+    default: '10'
+  timeout-minutes:
+    description: Per-execution timeout in minutes.
+    required: false
+    default: '60'
+  java-version:
+    description: JDK version used to run the action. Set to '' to use the Java already on the runner.
+    required: false
+    default: '17'
+
+outputs:
+  result:
+    description: success or failure
+    value: ${{ steps.run.outputs.result }}
+  html-report-url:
+    description: First HTML report URL returned by ClicTest.
+    value: ${{ steps.run.outputs.html-report-url }}
+  pdf-report-url:
+    description: First PDF report URL returned by ClicTest.
+    value: ${{ steps.run.outputs.pdf-report-url }}
+
+runs:
+  using: composite
+  steps:
+    - if: inputs.java-version != ''
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+
+    - id: run
+      shell: bash
+      run: java "$GITHUB_ACTION_PATH/ClicTest.java"
+      env:
+        CLICTEST_ENV_NAME: ${{ inputs.env-name }}
+        CLICTEST_PROJECT_NAME: ${{ inputs.project-name }}
+        CLICTEST_USERNAME: ${{ inputs.username }}
+        CLICTEST_PASSWORD: ${{ inputs.password }}
+        CLICTEST_TEST_SUITES: ${{ inputs.test-suites }}
+        CLICTEST_SERVICE_URL: ${{ inputs.service-url }}
+        CLICTEST_JOB_NAME: ${{ inputs.job-name }}
+        CLICTEST_CLIENT_IP: ${{ inputs.client-ip }}
+        CLICTEST_MAX_PARALLEL: ${{ inputs.max-parallel }}
+        CLICTEST_POLL_INTERVAL_SECONDS: ${{ inputs.poll-interval-seconds }}
+        CLICTEST_TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
+
+branding:
+  icon: check-circle
+  color: green

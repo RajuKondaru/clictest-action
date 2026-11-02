@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClicTest Configurator</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #1f2328; --muted: #59636e; --line: #d1d9e0;
+    --accent: #1f6feb; --accent-ink: #ffffff; --ok: #1a7f37; --err: #cf222e; --field: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --card: #151b23; --ink: #e6edf3; --muted: #9198a1; --line: #3d444d;
+      --accent: #4493f8; --accent-ink: #0d1117; --ok: #3fb950; --err: #f85149; --field: #0d1117;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  main { max-width: 880px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .lead { color: var(--muted); margin: 0 0 24px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  h2 .n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-ink); font-size: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  label { display: block; font-weight: 600; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input, select, textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--field); color: var(--ink); font: inherit; }
+  textarea { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; min-height: 120px; resize: vertical; }
+  select:disabled, input:disabled { opacity: .55; }
+  button { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--card);
+    color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button:disabled { opacity: .55; cursor: default; }
+  .row { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; margin-top: 12px; }
+  .status { font-size: 13px; color: var(--muted); min-height: 20px; margin-top: 8px; word-break: break-word; }
+  .status.ok { color: var(--ok); } .status.err { color: var(--err); }
+  .suite { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+  .suite-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 600; }
+  .browsers { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 4px 0; min-height: 30px; }
+  .browsers label { display: flex; gap: 6px; align-items: center; font-weight: 400; font-size: 13px; color: var(--ink); margin: 0; }
+  .browsers input { width: auto; }
+  .hint { font-size: 12px; color: var(--muted); }
+  .out-head { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ClicTest Configurator</h1>
+  <p class="lead">Pick test suites from your ClicTest server, then copy the workflow inputs or start the ClicTest Run workflow on GitHub or Gitea.</p>
+
+  <section>
+    <h2><span class="n">1</span>ClicTest server</h2>
+    <div class="grid">
+      <div><label for="serviceUrl">Service URL</label>
+        <input id="serviceUrl" value="http://preprod.clictest.com:8080/ClicTestJenkinsService/rest/jenkinsServices"></div>
+      <div><label for="env">Environment</label><select id="env" disabled><option value="">Load environments first</option></select></div>
+      <div><label for="userName">Username</label><input id="userName" autocomplete="username"></div>
+      <div><label for="password">Password</label><input id="password" type="password" autocomplete="current-password"></div>
+    </div>
+    <div class="row">
+      <button id="loadEnvs">Load environments</button>
+      <button id="signIn" class="primary" disabled>Sign in and load projects</button>
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <div><label for="project">Project</label><select id="project" disabled><option value="">Sign in first</option></select></div>
+    </div>
+    <div id="serverStatus" class="status"></div>
+    <p class="hint">The password goes only to the ClicTest server and is never saved. The workflow itself signs in with repository secrets.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>Test suites</h2>
+    <div id="suites"></div>
+    <button id="addSuite" disabled>+ Add test suite</button>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span>Workflow inputs</h2>
+    <div class="out-head"><label for="suitesJson">test-suites</label><button data-copy="suitesJson">Copy</button></div>
+    <textarea id="suitesJson" readonly></textarea>
+    <div class="out-head"><label for="stepYaml">Workflow step</label><button data-copy="stepYaml">Copy</button></div>
+    <textarea id="stepYaml" readonly style="min-height:220px"></textarea>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>Run now</h2>
+    <div class="grid">
+      <div><label for="apiBase">API base</label><input id="apiBase" value="https://api.github.com">
+        <div class="hint">Gitea: http://gitea.example.com:3000/api/v1</div></div>
+      <div><label for="repo">Repository (owner/name)</label><input id="repo" placeholder="smartintelectual/my-app"></div>
+      <div><label for="workflow">Workflow file</label><input id="workflow" value="clictest-run.yml"></div>
+      <div><label for="ref">Branch</label><input id="ref" value="main"></div>
+      <div><label for="token">Access token</label><input id="token" type="password" autocomplete="off">
+        <div class="hint">Needs Actions write access to the repository. Kept in this tab only.</div></div>
+    </div>
+    <div class="row"><button id="runNow" class="primary">Run now</button></div>
+    <div id="runStatus" class="status"></div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const state = { userId: '', configurations: [], suiteNames: [] };
+const cache = {};
+
+// Remember non-secret fields per viewer; page works without storage.
+const KEEP = ['serviceUrl', 'userName', 'apiBase', 'repo', 'workflow', 'ref'];
+try { KEEP.forEach(k => { const v = localStorage.getItem('clictest.' + k); if (v) $(k).value = v; }); } catch (e) {}
+KEEP.forEach(k => $(k).addEventListener('change', () => { try { localStorage.setItem('clictest.' + k, $(k).value.trim()); } catch (e) {} }));
+
+function status(el, text, kind) { $(el).textContent = text; $(el).className = 'status' + (kind ? ' ' + kind : ''); }
+
+function base() { return $('serviceUrl').value.trim().replace(/\/+$/, ''); }
+
+async function api(path, params) {
+  const url = base() + path + '?' + new URLSearchParams(params || {}).toString();
+  if (cache[url]) return cache[url];
+  let res;
+  try { res = await fetch(url, { headers: { Accept: 'application/json' } }); }
+  catch (e) {
+    throw new Error('Cannot reach ' + base() + '. The ClicTest server must allow cross-origin requests from this page'
+      + (location.protocol === 'https:' && base().startsWith('http:') ? ' and use HTTPS (this page is HTTPS).' : '.'));
+  }
+  if (!res.ok) throw new Error(path + ' returned HTTP ' + res.status);
+  return (cache[url] = await res.json());
+}
+
+function fill(select, values, placeholder) {
+  select.replaceChildren(new Option(placeholder, ''));
+  (values || []).forEach(v => select.add(new Option(v, v)));
+  select.disabled = !values || values.length === 0;
+}
+
+$('loadEnvs').onclick = async () => {
+  status('serverStatus', 'Loading environments…');
+  try {
+    const j = await api('/envdetails');
+    fill($('env'), j.Environment, 'Select environment');
+    $('signIn').disabled = false;
+    status('serverStatus', (j.Environment || []).length + ' environments loaded.', 'ok');
+  } catch (e) { status('serverStatus', e.message, 'err'); }
+};
+
+$('signIn').onclick = async () => {
+  const envName = $('env').value, userName = $('userName').value.trim(), password = $('password').value;
+  if (!envName || !userName || !password) return status('serverStatus', 'Select an environment and enter username and password.', 'err');
+  status('serverStatus', 'Signing in…');
+  try {
+    const j = await api('/projectdetails', { userName, password, envName });
+    if (!j.projectNames || !j.projectNames.length) throw new Error('Authentication failed or no projects for this user.');
+    state.userId = j.userId || '';
+    fill($('project'), j.projectNames, 'Select project');
+    status('serverStatus', 'Signed in. ' + j.projectNames.length + ' projects.', 'ok');
+  } catch (e) { status('serverStatus', e.message, 'err'); }
+};
+
+$('project').onchange = async () => {
+  $('suites').replaceChildren();
+  $('addSuite').disabled = true;
+  render();
+  const projectName = $('project').value, envName = $('env').value;
+  if (!projectName) return;
+  status('serverStatus', 'Loading test suites…');
+  try {
+    const [s, c] = await Promise.all([
+      api('/testsuitedetails', { projectName, envName }),
+      api('/configurationdetails', { projectName, envName })
+    ]);
+    state.suiteNames = s.TestSuiteNames || [];
+    state.configurations = c.Configurations || [];
+    $('addSuite').disabled = false;
+    addSuite();
+    status('serverStatus', state.suiteNames.length + ' test suites, ' + state.configurations.length + ' URLs.', 'ok');
+  } catch (e) { status('serverStatus', e.message, 'err'); }
+};
+
+function field(card, cls, text) {
+  const wrap = document.createElement('div');
+  const lab = document.createElement('label'); lab.textContent = text;
+  const sel = document.createElement('select'); sel.className = cls; sel.disabled = true;
+  sel.add(new Option('—', ''));
+  wrap.append(lab, sel);
+  card.querySelector('.grid').append(wrap);
+  return sel;
+}
+
+function addSuite() {
+  const card = document.createElement('div');
+  card.className = 'suite';
+  card.innerHTML = '<div class="suite-head"><span class="title"></span><button type="button" class="remove">Remove</button></div>'
+    + '<div class="grid"></div><label style="margin-top:12px">Browsers</label><div class="browsers hint">Select a platform first</div>';
+  const suite = field(card, 'suiteName', 'Test suite');
+  const version = field(card, 'version', 'Version');
+  const platform = field(card, 'platform', 'Platform');
+  const url = field(card, 'url', 'URL');
+  const browsers = card.querySelector('.browsers');
+  fill(suite, state.suiteNames, 'Select test suite');
+  fill(url, state.configurations, 'Select URL');
+
+  suite.onchange = async () => {
+    fill(version, [], '—'); fill(platform, [], '—'); browsers.replaceChildren('Select a platform first');
+    render();
+    if (!suite.value) return;
+    try {
+      const j = await api('/testsuiteversion', { testSuiteName: suite.value, userName: $('userName').value.trim(), envName: $('env').value });
+      fill(version, j.Versions, 'Select version');
+      fill(platform, j.platform, 'Select platform');
+    } catch (e) { status('serverStatus', e.message, 'err'); }
+  };
+  platform.onchange = async () => {
+    browsers.replaceChildren();
+    render();
+    if (!platform.value) return;
+    try {
+      const j = await api('/browserversion', { platform: platform.value, userId: state.userId, envName: $('env').value });
+      (j.Browsers_Version || []).forEach(b => {
+        const lab = document.createElement('label');
+        const box = document.createElement('input'); box.type = 'checkbox'; box.value = b; box.onchange = render;
+        lab.append(box, b);
+        browsers.append(lab);
+      });
+      if (!browsers.children.length) browsers.textContent = 'No browsers for this platform';
+    } catch (e) { status('serverStatus', e.message, 'err'); }
+  };
+  version.onchange = url.onchange = render;
+  card.querySelector('.remove').onclick = () => { card.remove(); render(); };
+  $('suites').append(card);
+  render();
+}
+$('addSuite').onclick = addSuite;
+
+function suites() {
+  return [...document.querySelectorAll('.suite')].map(card => ({
+    testSuiteName: card.querySelector('.suiteName').value,
+    testSuiteVersion: card.querySelector('.version').value,
+    url: card.querySelector('.url').value,
+    platform: card.querySelector('.platform').value,
+    browsers: [...card.querySelectorAll('.browsers input:checked')].map(b => b.value)
+  })).filter(s => s.testSuiteName);
+}
+
+function render() {
+  document.querySelectorAll('.suite').forEach((card, i) => card.querySelector('.title').textContent = 'Test suite ' + (i + 1));
+  const json = JSON.stringify(suites());
+  $('suitesJson').value = json;
+  const q = s => JSON.stringify(s || '');
+  $('stepYaml').value = [
+    '- id: clictest',
+    '  uses: smartintelectual/clictest-action@v1',
+    '  with:',
+    '    env-name: ' + q($('env').value),
+    '    project-name: ' + q($('project').value),
+    '    username: ${{ secrets.CLICTEST_USER }}',
+    '    password: ${{ secrets.CLICTEST_PASSWORD }}',
+    "    test-suites: '" + json.replace(/'/g, "''") + "'"
+  ].join('\n');
+}
+render();
+
+document.querySelectorAll('[data-copy]').forEach(btn => btn.onclick = async () => {
+  try { await navigator.clipboard.writeText($(btn.dataset.copy).value); btn.textContent = 'Copied'; }
+  catch (e) { $(btn.dataset.copy).select(); btn.textContent = 'Press Ctrl+C'; }
+  setTimeout(() => btn.textContent = 'Copy', 1500);
+});
+
+$('runNow').onclick = async () => {
+  const list = suites(), apiBase = $('apiBase').value.trim().replace(/\/+$/, ''), repo = $('repo').value.trim();
+  const workflow = $('workflow').value.trim(), ref = $('ref').value.trim(), token = $('token').value.trim();
+  if (!$('env').value || !$('project').value) return status('runStatus', 'Pick an environment and project first.', 'err');
+  if (!list.length || list.some(s => !s.browsers.length)) return status('runStatus', 'Every test suite needs at least one browser.', 'err');
+  if (!/^[^/\s]+\/[^/\s]+$/.test(repo) || !workflow || !ref || !token) return status('runStatus', 'Fill repository, workflow file, branch and token.', 'err');
+  $('runNow').disabled = true;
+  status('runStatus', 'Starting workflow…');
+  try {
+    const res = await fetch(apiBase + '/repos/' + repo + '/actions/workflows/' + encodeURIComponent(workflow) + '/dispatches', {
+      method: 'POST',
+      headers: { Authorization: 'token ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref, inputs: { 'env-name': $('env').value, 'project-name': $('project').value, 'test-suites': JSON.stringify(list) } })
+    });
+    if (res.status !== 204 && res.status !== 200) {
+      const text = await res.text();
+      throw new Error('HTTP ' + res.status + (text ? ': ' + text.slice(0, 300) : ''));
+    }
+    const web = apiBase === 'https://api.github.com' ? 'https://github.com' : apiBase.replace(/\/api\/v1$/, '');
+    const link = document.createElement('a');
+    link.href = web + '/' + repo + '/actions'; link.target = '_blank'; link.rel = 'noopener'; link.textContent = 'Open Actions';
+    status('runStatus', 'Workflow started on ' + ref + '. ', 'ok');
+    $('runStatus').append(link);
+  } catch (e) {
+    status('runStatus', 'Could not start the workflow: ' + e.message, 'err');
+  } finally { $('runNow').disabled = false; }
+};
+</script>
+</body>
+</html>
