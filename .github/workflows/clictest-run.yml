@@ -1,0 +1,30 @@
+# Runs this repository's own action (uses: ./) so the configurator's Run now can be tried here.
+# For other repositories copy examples/clictest-run.yml instead.
+name: ClicTest Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      env-name:
+        description: ClicTest environment
+        required: true
+      project-name:
+        description: ClicTest project
+        required: true
+      test-suites:
+        description: Test suites JSON (generate it with the ClicTest configurator)
+        required: true
+
+jobs:
+  clictest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: clictest
+        uses: ./
+        with:
+          env-name: ${{ inputs.env-name }}
+          project-name: ${{ inputs.project-name }}
+          username: ${{ secrets.CLICTEST_USER }}
+          password: ${{ secrets.CLICTEST_PASSWORD }}
+          test-suites: ${{ inputs.test-suites }}
