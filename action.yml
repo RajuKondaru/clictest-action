@@ -23,7 +23,7 @@ inputs:
   service-url:
     description: ClicTest Jenkins service REST base URL.
     required: false
-    default: http://preprod.clictest.com:8080/ClicTestJenkinsService/rest/jenkinsServices
+    default: https://preprod.clictest.com:8443/ClicTestJenkinsService/rest/jenkinsServices
   job-name:
     description: Job name reported to ClicTest. Defaults to the repository (owner/name).
     required: false
